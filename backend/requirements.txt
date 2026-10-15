@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-jose[cryptography]
+python-multipart
+openpyxl
+httpx
+qrcode
+pillow
+pytest

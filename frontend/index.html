@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工会活动阵地管理系统</title>
+<link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/element-plus/dist/index.full.min.js"></script>
+<script src="config.js"></script>
+<style>
+body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
+.login{display:flex;align-items:center;justify-content:center;height:100vh;
+ background:linear-gradient(135deg,#2F5597,#4472C4)}
+.login-card{width:360px;padding:40px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.login-card h2{color:#2F5597;text-align:center;margin:0 0 24px}
+.layout{display:flex;height:100vh}
+.side{width:200px;background:#2F5597;color:#fff;padding-top:12px}
+.side .logo{font-size:15px;font-weight:bold;padding:16px;text-align:center;line-height:1.5}
+.menu-item{padding:14px 24px;cursor:pointer;font-size:14px}
+.menu-item:hover,.menu-item.on{background:rgba(255,255,255,.15);border-left:3px solid #FFC000}
+.main{flex:1;overflow:auto;padding:20px}
+.stat-row{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.stat-card{flex:1;min-width:150px;background:#fff;border-radius:8px;padding:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.stat-card .num{font-size:32px;font-weight:bold;color:#2F5597}
+.stat-card .lbl{font-size:13px;color:#888;margin-top:4px}
+.card{background:#fff;border-radius:8px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.toolbar{display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.pager{margin-top:12px;text-align:right}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 登录页 -->
+  <div class="login" v-if="!token">
+    <div class="login-card">
+      <h2>工会活动阵地管理系统</h2>
+      <el-form @submit.prevent="doLogin">
+        <el-form-item><el-input v-model="login.username" placeholder="用户名" size="large"/></el-form-item>
+        <el-form-item><el-input v-model="login.password" type="password" placeholder="密码" size="large" show-password/></el-form-item>
+        <el-button type="primary" size="large" style="width:100%" @click="doLogin" :loading="loading">登 录</el-button>
+      </el-form>
+      <p style="color:#999;font-size:12px;margin-top:16px;text-align:center">测试账号：admin / admin123（管理员）<br>公安县 / 123456（县公司）</p>
+    </div>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="layout" v-else>
+    <div class="side">
+      <div class="logo">工会活动阵地<br>精细化管理系统</div>
+      <div class="menu-item" :class="{on:tab==='dash'}" @click="switchTab('dash')">总览看板</div>
+      <div class="menu-item" :class="{on:tab==='venues'}" @click="switchTab('venues')">阵地台账</div>
+      <div class="menu-item" :class="{on:tab==='devices'}" @click="switchTab('devices')">设备管理</div>
+      <div class="menu-item" :class="{on:tab==='video'}" @click="switchTab('video')">视频巡检</div>
+      <div class="menu-item" :class="{on:tab==='logs'}" @click="switchTab('logs')">使用记录</div>
+      <div class="menu-item" :class="{on:tab==='resv'}" @click="switchTab('resv')">场地预约</div>
+      <div class="menu-item" @click="logout">退出登录</div>
+      <div style="padding:24px;font-size:12px;color:rgba(255,255,255,.6)">当前：{{user.name}}<br>{{user.role==='admin'?'全局管理':'本单位'}}</div>
+    </div>
+
+    <div class="main">
+      <!-- 总览看板 -->
+      <div v-if="tab==='dash'">
+        <div class="stat-row">
+          <div class="stat-card"><div class="num">{{stats.venues||0}}</div><div class="lbl">阵地总数</div></div>
+          <div class="stat-card"><div class="num">{{stats.door_devices||0}}</div><div class="lbl">门禁设备</div></div>
+          <div class="stat-card"><div class="num">{{stats.online_doors||0}}</div><div class="lbl">可远程控制门禁</div></div>
+          <div class="stat-card"><div class="num">{{stats.cameras||0}}</div><div class="lbl">监控摄像头</div></div>
+          <div class="stat-card"><div class="num">{{stats.pending_reservations||0}}</div><div class="lbl">待审批预约</div></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;color:#2F5597">近30日阵地使用排行 Top10</h3>
+          <el-table :data="stats.top_usage||[]" stripe>
+            <el-table-column type="index" label="#" width="50"/>
+            <el-table-column prop="venue" label="阵地名称"/>
+            <el-table-column prop="count" label="使用次数" width="120"/>
+          </el-table>
+        </div>
+      </div>
+
+      <!-- 阵地台账 -->
+      <div v-if="tab==='venues'">
+        <div class="card">
+          <div class="toolbar">
+            <el-input v-model="q.keyword" placeholder="阵地名称/单位" style="width:220px" clearable @change="loadVenues"/>
+            <el-select v-model="q.level" placeholder="层级" style="width:120px" clearable @change="loadVenues">
+              <el-option label="本部" value="本部"/><el-option label="县级公司" value="县级公司"/>
+            </el-select>
+            <el-button type="primary" @click="loadVenues">查询</el-button>
+            <el-button v-if="user.role==='admin'" type="success" @click="openVenue()">新增阵地</el-button>
+            <el-upload v-if="user.role==='admin'" :show-file-list="false" :auto-upload="false"
+              @change="doImport"><el-button type="warning">导入Excel填报数据</el-button></el-upload>
+          </div>
+          <el-table :data="venues" stripe size="small" height="calc(100vh - 220px)">
+            <el-table-column prop="name" label="阵地名称" min-width="150" fixed/>
+            <el-table-column prop="level" label="层级" width="90"/>
+            <el-table-column prop="org" label="所属单位" width="140"/>
+            <el-table-column prop="category" label="类型" width="90"/>
+            <el-table-column prop="area" label="面积㎡" width="80"/>
+            <el-table-column prop="capacity" label="容纳" width="70"/>
+            <el-table-column prop="open_hours" label="开放时间" width="150" show-overflow-tooltip/>
+            <el-table-column prop="manager" label="管理员" width="90"/>
+            <el-table-column prop="phone" label="电话" width="120"/>
+            <el-table-column label="操作" width="140" fixed="right">
+              <template #default="s">
+                <el-button v-if="user.role==='admin'" size="small" @click="openVenue(s.row)">编辑</el-button>
+                <el-button v-if="user.role==='admin'" size="small" type="danger" @click="delVenue(s.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+
+      <!-- 设备管理 -->
+      <div v-if="tab==='devices'">
+        <div class="card">
+          <h3 style="margin-top:0;color:#2F5597">门禁设备</h3>
+          <el-table :data="doors" stripe size="small" max-height="340">
+            <el-table-column prop="venue" label="所属阵地" min-width="150"/>
+            <el-table-column prop="brand" label="品牌" width="90"/>
+            <el-table-column prop="model" label="型号" width="110"/>
+            <el-table-column label="联网类型" width="110">
+              <template #default="s"><el-tag :type="s.row.net_type==='联网型'?'success':'info'">{{s.row.net_type}}</el-tag></template>
+            </el-table-column>
+            <el-table-column prop="access_mode" label="接入方式" width="110"/>
+            <el-table-column prop="serial" label="序列号/IP" width="120"/>
+            <el-table-column prop="location" label="安装位置" width="90"/>
+            <el-table-column label="操作" width="110">
+              <template #default="s">
+                <el-button v-if="s.row.net_type==='联网型'" size="small" type="primary"
+                  @click="openDoor(s.row)">远程开门</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;color:#2F5597">摄像头设备</h3>
+          <el-table :data="cameras" stripe size="small" max-height="340">
+            <el-table-column prop="venue" label="所属阵地" min-width="150"/>
+            <el-table-column prop="brand" label="品牌" width="90"/>
+            <el-table-column prop="model" label="型号" width="100"/>
+            <el-table-column prop="platform" label="接入平台" width="100"/>
+            <el-table-column prop="serial" label="序列号" width="110"/>
+            <el-table-column prop="location" label="安装位置" width="100"/>
+            <el-table-column prop="coverage" label="覆盖区域" min-width="120"/>
+          </el-table>
+        </div>
+      </div>
+
+      <!-- 视频巡检 -->
+      <div v-if="tab==='video'">
+        <div class="card">
+          <div class="toolbar">
+            <el-button type="primary" :loading="patrolling" @click="patrol">一键轮巡全部摄像头</el-button>
+            <span v-if="patrolTime" style="color:#888;font-size:13px">上次巡检：{{patrolTime}}，共 {{patrolResults.length}} 路</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px">
+            <div v-for="r in patrolResults" :key="r.camera_id" style="width:280px;background:#fafafa;border:1px solid #eee;border-radius:8px;padding:10px">
+              <div style="font-weight:bold;font-size:13px">{{r.venue}}</div>
+              <div style="color:#888;font-size:12px;margin:2px 0">{{r.location}} · {{r.serial}}</div>
+              <div style="background:#2b2b2b;color:#7ee787;border-radius:4px;padding:14px;text-align:center;font-size:12px">
+                ◉ {{r.snapshot?'快照已存档':'无画面'}}<br><span style="color:#666">{{r.snapshot}}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 使用记录 -->
+      <div v-if="tab==='logs'" class="card">
+        <div class="toolbar">
+          <el-select v-model="logVenue" placeholder="按阵地筛选" style="width:220px" clearable @change="loadLogs">
+            <el-option v-for="v in venues" :key="v.id" :label="v.name" :value="v.id"/>
+          </el-select>
+        </div>
+        <el-table :data="logs" stripe size="small" height="calc(100vh - 200px)">
+          <el-table-column prop="created_at" label="时间" width="170"/>
+          <el-table-column prop="person" label="人员" width="120"/>
+          <el-table-column label="行为" width="120">
+            <template #default="s">
+              <el-tag :type="s.row.action==='remote_open'?'warning':'primary'" size="small">
+                {{({remote_open:'远程开门',card_open:'刷卡',scheduled_open:'定时开放'})[s.row.action]}}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="source" label="来源" width="100"/>
+          <el-table-column prop="snapshot" label="关联快照"/>
+        </el-table>
+      </div>
+
+      <!-- 场地预约 -->
+      <div v-if="tab==='resv'" class="card">
+        <div class="toolbar">
+          <el-select v-model="resvFilter" placeholder="状态" style="width:130px" clearable @change="loadResv">
+            <el-option label="待审批" value="待审批"/><el-option label="已通过" value="已通过"/><el-option label="已拒绝" value="已拒绝"/>
+          </el-select>
+          <el-button type="success" @click="resvDlg=true">新建预约</el-button>
+        </div>
+        <el-table :data="resvs" stripe size="small" height="calc(100vh - 200px)">
+          <el-table-column prop="venue" label="阵地" min-width="140"/>
+          <el-table-column prop="applicant" label="申请人" width="100"/>
+          <el-table-column prop="phone" label="电话" width="120"/>
+          <el-table-column prop="start_time" label="开始" width="150"/>
+          <el-table-column prop="end_time" label="结束" width="150"/>
+          <el-table-column prop="reason" label="事由" min-width="120"/>
+          <el-table-column label="状态" width="90">
+            <template #default="s"><el-tag :type="s.row.status==='已通过'?'success':(s.row.status==='已拒绝'?'danger':'warning')" size="small">{{s.row.status}}</el-tag></template>
+          </el-table-column>
+          <el-table-column label="审批" width="150">
+            <template #default="s">
+              <template v-if="s.row.status==='待审批'">
+                <el-button size="small" type="success" @click="review(s.row,true)">通过</el-button>
+                <el-button size="small" type="danger" @click="review(s.row,false)">拒绝</el-button>
+              </template>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 阵地编辑弹窗 -->
+  <el-dialog v-model="venueDlg" :title="venueForm.id?'编辑阵地':'新增阵地'" width="560px">
+    <el-form label-width="90px">
+      <el-form-item label="阵地名称"><el-input v-model="venueForm.name"/></el-form-item>
+      <el-form-item label="层级">
+        <el-select v-model="venueForm.level"><el-option label="本部" value="本部"/><el-option label="县级公司" value="县级公司"/></el-select>
+      </el-form-item>
+      <el-form-item label="所属单位"><el-input v-model="venueForm.org"/></el-form-item>
+      <el-form-item label="详细地址"><el-input v-model="venueForm.address"/></el-form-item>
+      <el-form-item label="场所类型"><el-input v-model="venueForm.category"/></el-form-item>
+      <el-form-item label="面积(㎡)"><el-input-number v-model="venueForm.area"/></el-form-item>
+      <el-form-item label="开放时间"><el-input v-model="venueForm.open_hours"/></el-form-item>
+      <el-form-item label="管理员"><el-input v-model="venueForm.manager"/></el-form-item>
+      <el-form-item label="电话"><el-input v-model="venueForm.phone"/></el-form-item>
+    </el-form>
+    <template #footer><el-button @click="venueDlg=false">取消</el-button>
+      <el-button type="primary" @click="saveVenue">保存</el-button></template>
+  </el-dialog>
+
+  <!-- 新建预约弹窗 -->
+  <el-dialog v-model="resvDlg" title="新建场地预约" width="480px">
+    <el-form label-width="80px">
+      <el-form-item label="阵地">
+        <el-select v-model="resvForm.venue_id" filterable>
+          <el-option v-for="v in venues" :key="v.id" :label="v.name" :value="v.id"/>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="申请人"><el-input v-model="resvForm.applicant"/></el-form-item>
+      <el-form-item label="时间段">
+        <el-date-picker v-model="resvRange" type="datetimerange" start-placeholder="开始" end-placeholder="结束"/>
+      </el-form-item>
+      <el-form-item label="事由"><el-input v-model="resvForm.reason" type="textarea"/></el-form-item>
+    </el-form>
+    <template #footer><el-button @click="resvDlg=false">取消</el-button>
+      <el-button type="primary" @click="submitResv">提交</el-button></template>
+  </el-dialog>
+</div>
+
+<script>
+const {createApp, reactive, ref} = Vue;
+const E = ElementPlus, msg = E.ElMessage;
+createApp({
+  setup(){
+    const token = ref(localStorage.getItem('vms_token')||'');
+    const user = reactive(JSON.parse(localStorage.getItem('vms_user')||'{}'));
+    const tab = ref('dash'), loading = ref(false);
+    const login = reactive({username:'', password:''});
+    const api = (path, opt={}) => fetch(API + path, {...opt,
+      headers:{'Content-Type':'application/json', Authorization:'Bearer '+token.value, ...(opt.headers||{})}
+    }).then(async r=>{ if(r.status===401){logout();throw new Error('未登录')} 
+      const j = await r.json(); if(!r.ok) throw new Error(j.detail||'请求失败'); return j; });
+
+    const stats = ref({});
+    const venues = ref([]); const q = reactive({keyword:'', level:''});
+    const doors = ref([]), cameras = ref([]);
+    const logs = ref([]), logVenue = ref('');
+    const resvs = ref([]), resvFilter = ref('');
+    const patrolResults = ref([]), patrolling = ref(false), patrolTime = ref('');
+    const venueDlg = ref(false); const venueForm = reactive({});
+    const resvDlg = ref(false); const resvForm = reactive({});
+    const resvRange = ref([]);
+
+    async function loadStats(){ stats.value = await api('/api/stats'); }
+    async function loadVenues(){
+      const p = new URLSearchParams({keyword:q.keyword, level:q.level});
+      venues.value = await api('/api/venues?'+p);
+    }
+    async function loadDevices(){ doors.value = await api('/api/doors'); cameras.value = await api('/api/cameras'); }
+    async function loadLogs(){
+      const p = new URLSearchParams({venue_id:logVenue.value||0, limit:200});
+      logs.value = await api('/api/access-logs?'+p);
+    }
+    async function loadResv(){
+      const p = new URLSearchParams({status:resvFilter.value||''});
+      resvs.value = await api('/api/reservations?'+p);
+    }
+    function switchTab(t){ tab.value = t;
+      ({dash:loadStats, venues:loadVenues, devices:loadDevices, video:()=>{}, logs:loadLogs, resv:loadResv})[t]();
+      if(t==='video' && !patrolResults.value.length) patrol();
+    }
+
+    async function doLogin(){
+      loading.value = true;
+      try{
+        const r = await fetch(API + '/api/login',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(login)});
+        if(!r.ok) throw new Error((await r.json()).detail||'登录失败');
+        const j = await r.json();
+        token.value = j.token; user.name=j.name; user.role=j.role; user.org=j.org;
+        localStorage.setItem('vms_token', j.token);
+        localStorage.setItem('vms_user', JSON.stringify(user));
+        switchTab('dash');
+      }catch(e){ msg.error(e.message) } finally{ loading.value=false }
+    }
+    function logout(){ token.value=''; localStorage.clear(); location.reload(); }
+
+    function openVenue(row){ Object.assign(venueForm, row||{id:0,name:'',level:'本部',org:user.org||'',address:'',category:'',area:0,open_hours:'',capacity:0,facilities:'',manager:'',phone:'',remark:''}); venueDlg.value=true; }
+    async function saveVenue(){
+      try{
+        if(venueForm.id){ await api('/api/venues/'+venueForm.id,{method:'PUT',body:JSON.stringify(venueForm)}); }
+        else{ await api('/api/venues',{method:'POST',body:JSON.stringify(venueForm)}); }
+        msg.success('已保存'); venueDlg.value=false; loadVenues();
+      }catch(e){ msg.error(e.message) }
+    }
+    async function delVenue(row){
+      try{
+        await E.ElMessageBox.confirm(`确认删除阵地「${row.name}」？其设备记录将一并删除`,'删除确认',{type:'warning'});
+        await api('/api/venues/'+row.id,{method:'DELETE'}); msg.success('已删除'); loadVenues();
+      }catch(e){}
+    }
+    async function doImport(file){
+      const fd = new FormData(); fd.append('file', file.raw);
+      try{
+        const r = await fetch(API + '/api/import',{method:'POST',body:fd,headers:{Authorization:'Bearer '+token.value}});
+        const j = await r.json();
+        E.ElMessageBox.alert(`导入阵地 ${j.venues} 处、门禁 ${j.doors} 台、摄像头 ${j.cameras} 台` +
+          (j.errors.length?`<br><span style="color:red">${j.errors.join('<br>')}</span>`:''),
+          '导入结果',{dangerouslyUseHTMLString:true});
+        loadVenues();
+      }catch(e){ msg.error('导入失败') }
+    }
+    async function openDoor(row){
+      try{
+        await api(`/api/door/${row.id}/open`,{method:'POST'});
+        msg.success(`${row.venue} 门禁已开启`);
+      }catch(e){ msg.error(e.message) }
+    }
+    async function patrol(){
+      patrolling.value = true;
+      try{
+        const r = await api('/api/video/patrol',{method:'POST'});
+        patrolResults.value = r.results; patrolTime.value = new Date().toLocaleString();
+        msg.success(`巡检完成，共 ${r.count} 路摄像头`);
+      }catch(e){ msg.error(e.message) } finally{ patrolling.value=false }
+    }
+    async function review(row, ok){
+      try{ await api(`/api/reservations/${row.id}/review?approve=${ok}`,{method:'POST'});
+        msg.success(ok?'已通过':'已拒绝'); loadResv();
+      }catch(e){ msg.error(e.message) }
+    }
+    async function submitResv(){
+      try{
+        await api('/api/reservations',{method:'POST',body:JSON.stringify({
+          venue_id: resvForm.venue_id, applicant: resvForm.applicant||user.name, phone:'',
+          start_time: resvRange.value[0].toISOString().slice(0,19).replace('T',' '),
+          end_time: resvRange.value[1].toISOString().slice(0,19).replace('T',' '),
+          reason: resvForm.reason||''})});
+        msg.success('预约已提交，待审批'); resvDlg.value=false; loadResv();
+      }catch(e){ msg.error(e.message) }
+    }
+
+    if(token.value) switchTab('dash');
+    return {token,user,tab,loading,login,doLogin,logout,stats,venues,q,loadVenues,doors,cameras,
+      logs,logVenue,loadLogs,resvs,resvFilter,loadResv,patrolResults,patrolling,patrolTime,patrol,
+      venueDlg,venueForm,openVenue,saveVenue,delVenue,doImport,openDoor,switchTab,
+      resvDlg,resvForm,resvRange,submitResv,review};
+  }
+}).use(ElementPlus).mount('#app');
+</script>
+</body>
+</html>

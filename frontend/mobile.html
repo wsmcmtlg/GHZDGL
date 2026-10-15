@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>工会活动阵地预约</title>
+<link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/element-plus/dist/index.full.min.js"></script>
+<script src="config.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'微软雅黑',sans-serif;background:#eef2f7;-webkit-tap-highlight-color:transparent}
+.head{background:linear-gradient(135deg,#2F5597,#4472C4);color:#fff;padding:22px 16px 18px;
+ border-radius:0 0 18px 18px}
+.head h1{margin:0;font-size:19px}
+.head p{margin:6px 0 0;font-size:12px;opacity:.85}
+.wrap{padding:12px;margin-bottom:70px}
+.tabs{display:flex;background:#fff;border-radius:10px;overflow:hidden;margin-bottom:12px}
+.tabs div{flex:1;text-align:center;padding:11px 0;font-size:14px;color:#666;cursor:pointer}
+.tabs div.on{color:#2F5597;font-weight:bold;border-bottom:2px solid #2F5597;background:#f5f8ff}
+.venue{background:#fff;border-radius:10px;padding:13px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.venue .nm{font-size:15px;font-weight:bold;color:#333}
+.venue .meta{font-size:12px;color:#999;margin-top:3px}
+.tag{display:inline-block;font-size:11px;color:#2F5597;background:#e8f0fe;border-radius:4px;padding:1px 6px;margin-right:4px}
+.book{background:#2F5597;color:#fff;border:none;border-radius:16px;padding:7px 16px;font-size:13px}
+.form-item{margin-bottom:13px}
+.form-item label{display:block;font-size:13px;color:#666;margin-bottom:5px}
+.form-item input,.form-item textarea,.form-item select{width:100%;border:1px solid #dcdfe6;border-radius:6px;
+ padding:9px 10px;font-size:14px;font-family:inherit}
+.resv{background:#fff;border-radius:10px;padding:13px 14px;margin-bottom:10px}
+.resv .row1{display:flex;justify-content:space-between;align-items:center}
+.resv .st{font-size:12px;border-radius:4px;padding:2px 8px}
+.st0{color:#b8860b;background:#fdf3d8}.st1{color:#1a7f37;background:#dff3e4}.st2{color:#b02a2a;background:#fbe2e2}
+.resv .tm{font-size:13px;color:#555;margin-top:6px}
+.foot{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:10px 14px;box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+.ok{text-align:center;padding:30px 0}
+.ok .ic{font-size:52px;color:#1a7f37}
+.empty{text-align:center;color:#aaa;padding:50px 0;font-size:14px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="head">
+    <h1>工会活动阵地预约</h1>
+    <p>扫码自助预约 · 审批通过后按时段开门</p>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs">
+      <div :class="{on:tab==='book'}" @click="tab='book'">预约场地</div>
+      <div :class="{on:tab==='mine'}" @click="showMine">我的预约</div>
+    </div>
+
+    <!-- 预约场地 -->
+    <div v-if="tab==='book'">
+      <div v-if="!formDone">
+        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px">
+          <span v-for="o in orgChips" :key="o.key" @click="filterOrg=o.key"
+            :style="chipStyle(o.key)">{{o.label}}</span>
+        </div>
+        <div v-if="geoMsg" style="font-size:12px;color:#2F5597;background:#e8f0fe;border-radius:6px;padding:7px 10px;margin-bottom:10px">◎ {{geoMsg}}</div>
+        <div class="venue" v-for="v in filteredVenues" :key="v.id" @click="pick(v)"
+             :style="form.venue_id===v.id?'outline:2px solid #2F5597':''">
+          <div>
+            <div class="nm">{{v.name}}</div>
+            <div class="meta">
+              <span class="tag" v-if="v.category">{{v.category}}</span>
+              <span class="tag">{{v.org}}</span>
+            </div>
+            <div class="meta">{{v.open_hours}}{{distText(v)}}</div>
+          </div>
+          <button class="book">预约</button>
+        </div>
+        <div class="empty" v-if="!filteredVenues.length">该单位暂无场地，试试其他标签</div>
+      </div>
+
+      <div v-else style="background:#fff;border-radius:10px;padding:16px">
+        <div style="font-weight:bold;margin-bottom:14px;color:#2F5597">{{picked.name}} · 填写预约信息</div>
+        <div class="form-item"><label>姓名</label><input v-model="form.applicant" placeholder="请输入姓名"/></div>
+        <div class="form-item"><label>手机号</label><input v-model="form.phone" type="tel" maxlength="11" placeholder="用于接收审批结果和查询预约"/></div>
+        <div class="form-item"><label>预约时间</label>
+          <input type="datetime-local" v-model="fStart" style="margin-bottom:8px"/>
+          <input type="datetime-local" v-model="fEnd"/>
+        </div>
+        <div class="form-item"><label>事由（选填）</label><textarea v-model="form.reason" rows="2" placeholder="如：部门羽毛球活动"/></div>
+        <button class="book" style="width:100%;padding:12px;font-size:15px" @click="submit">提交预约</button>
+        <button style="width:100%;padding:10px;background:none;border:none;color:#999;margin-top:4px" @click="formDone=false">返回选择场地</button>
+      </div>
+    </div>
+
+    <!-- 我的预约 -->
+    <div v-if="tab==='mine'">
+      <div style="background:#fff;border-radius:10px;padding:13px 14px;margin-bottom:10px;display:flex;gap:8px">
+        <input v-model="myPhone" type="tel" maxlength="11" placeholder="输入预约时使用的手机号"
+               style="flex:1;border:1px solid #dcdfe6;border-radius:6px;padding:9px 10px"/>
+        <button class="book" @click="queryMine">查询</button>
+      </div>
+      <div class="resv" v-for="r in mine" :key="r.id">
+        <div class="row1"><b style="font-size:14px">{{r.venue}}</b>
+          <span class="st" :class="r.status==='已通过'?'st1':(r.status==='已拒绝'?'st2':'st0')">{{r.status}}</span></div>
+        <div class="tm">{{r.start_time}} ~ {{r.end_time}}</div>
+      </div>
+      <div class="empty" v-if="mine.length===0 && searched">暂无预约记录</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const {createApp, reactive, ref} = Vue;
+createApp({
+  setup(){
+    const tab = ref('book'), venues = ref([]);
+    const form = reactive({venue_id:0, applicant:'', phone:'', reason:''});
+    const fStart = ref(''), fEnd = ref('');
+    const formDone = ref(false), picked = reactive({name:''});
+    const mine = ref([]), myPhone = ref(''), searched = ref(false);
+    const msg = (t)=>ElementPlus.ElMessage({message:t, type:'info'});
+
+    fetch(API + '/api/mobile/venues').then(r=>r.json()).then(j=>venues.value=j);
+
+    function pick(v){ Object.assign(picked, v); form.venue_id=v.id;
+      const d=new Date(Date.now()+3600e3); d.setMinutes(0,0,0);
+      const e=new Date(d.getTime()+2*3600e3);
+      const p=x=>String(x).padStart(2,'0');
+      fStart.value = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:00`;
+      fEnd.value = `${e.getFullYear()}-${p(e.getMonth()+1)}-${p(e.getDate())}T${p(e.getHours())}:00`;
+      formDone.value = true;
+    }
+    async function submit(){
+      if(!form.applicant) return msg('请填写姓名');
+      if(!/^1\d{10}$/.test(form.phone)) return msg('请填写正确的11位手机号');
+      if(!fStart.value || !fEnd.value) return msg('请选择预约时间');
+      try{
+        const r = await fetch(API + '/api/mobile/reservations',{method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({...form,
+            start_time:fStart.value.replace('T',' ')+':00',
+            end_time:fEnd.value.replace('T',' ')+':00'})});
+        const j = await r.json();
+        if(!r.ok) return msg(j.detail||'提交失败');
+        ElementPlus.ElMessageBox.alert('预约已提交，等待工会管理员审批。可在"我的预约"中查看进度。','提交成功');
+        formDone.value = false; form.applicant=''; form.reason=''; myPhone.value=form.phone;
+      }catch(e){ msg('网络异常，请重试') }
+    }
+    async function queryMine(){
+      if(!/^1\d{10}$/.test(myPhone.value)) return msg('请输入正确的11位手机号');
+      const r = await fetch(API + '/api/mobile/reservations?phone='+myPhone.value);
+      mine.value = await r.json(); searched.value = true;
+    }
+    function showMine(){ tab.value='mine'; }
+
+    // ---- 定位与就近推荐 ----
+    const filterOrg = ref('__all__');
+    const geoMsg = ref('');
+    const myPos = ref(null);
+    const orgChips = Vue.computed(()=>{
+      const chips=[{key:'__near__',label:'◎ 推荐就近'},{key:'__all__',label:'全部'}];
+      const seen=[];
+      venues.value.forEach(v=>{ if(!seen.includes(v.org)){seen.push(v.org);
+        chips.push({key:v.org,label:v.org.replace('供电公司','')});}});
+      return chips;
+    });
+    const filteredVenues = Vue.computed(()=>{
+      let list=[...venues.value];
+      if(filterOrg.value==='__near__'){
+        list = myPos.value ? list.filter(v=>v.lat).sort((a,b)=>dist(a)-dist(b)) : list;
+      }else if(filterOrg.value!=='__all__'){
+        list = list.filter(v=>v.org===filterOrg.value);
+      }
+      return list;
+    });
+    function dist(v){ // haversine 公里
+      if(!myPos.value||!v.lat) return 1e9;
+      const R=6371,d=Math.PI/180;
+      const dLat=(v.lat-myPos.value.lat)*d, dLng=(v.lng-myPos.value.lng)*d;
+      const a=Math.sin(dLat/2)**2+Math.cos(myPos.value.lat*d)*Math.cos(v.lat*d)*Math.sin(dLng/2)**2;
+      return 2*R*Math.asin(Math.sqrt(a));
+    }
+    function distText(v){ return myPos.value&&v.lat&&dist(v)<1e8
+      ? ` · 距您约${dist(v)<1?Math.round(dist(v)*1000)+'m':dist(v).toFixed(1)+'km'}` : ''; }
+    function chipStyle(k){ return 'flex-shrink:0;font-size:13px;padding:6px 14px;border-radius:16px;cursor:pointer;'
+      +(filterOrg.value===k?'background:#2F5597;color:#fff':'background:#fff;color:#555;border:1px solid #dcdfe6'); }
+    const nearestOrg = ref('');
+    function locate(){
+      if(!navigator.geolocation){ geoMsg.value='浏览器不支持定位，可点击上方标签选择单位'; return; }
+      navigator.geolocation.getCurrentPosition(p=>{
+        myPos.value={lat:p.coords.latitude,lng:p.coords.longitude};
+        const withCoord=venues.value.filter(v=>v.lat);
+        if(withCoord.length){
+          nearestOrg.value=withCoord.sort((a,b)=>dist(a)-dist(b))[0].org;
+          filterOrg.value='__near__';
+          geoMsg.value=`已定位，已为你优先展示附近的场地，也可点击标签切换其他单位`;
+        }
+      },()=>{ geoMsg.value='未获得定位权限，已展示全部场地，可点击上方标签按单位筛选'; });
+    }
+    Vue.watch(venues, ()=>locate());
+
+    return {tab,venues,form,fStart,fEnd,formDone,picked,mine,myPhone,searched,pick,submit,queryMine,showMine,
+      filterOrg,geoMsg,orgChips,filteredVenues,distText,chipStyle};
+  }
+}).use(ElementPlus).mount('#app');
+</script>
+</body>
+</html>
