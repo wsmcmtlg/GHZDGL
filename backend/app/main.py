@@ -439,7 +439,7 @@ def qrcode_png(request: Request):
 
 
 # ---------------- 前端静态页面 ----------------
-FRONT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+FRONT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
 if os.path.isdir(FRONT_DIR):
     app.mount("/", StaticFiles(directory=FRONT_DIR, html=True), name="front")
 

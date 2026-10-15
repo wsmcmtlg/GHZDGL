@@ -13,7 +13,7 @@
 
 ## 目录
 
-- `index.html` / `mobile.html` / `config.js` — 前端（GitHub Pages 站点根）
+- `index.html` / `mobile.html` / `config.js` — 前端（仓库根，即 GitHub Pages 站点根）
 - `backend/` — FastAPI 后端（app 源码、测试、requirements、Dockerfile、deploy.sh）
 
 ## 云服务器部署（服务器端）
