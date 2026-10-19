@@ -129,3 +129,45 @@ def test_stats():
     s = r.json()
     assert s["venues"] == 65 and s["door_devices"] > 0 and s["cameras"] > 0
     assert isinstance(s["top_usage"], list)
+
+
+def test_user_management():
+    # 非管理员无权访问
+    r = client.post("/api/login", json={"username": "公安县", "password": "123456"})
+    t2 = {"Authorization": f"Bearer {r.json()['token']}"}
+    assert client.get("/api/users", headers=t2).status_code == 403
+    # 新增县公司账号
+    r = client.post("/api/users", headers=auth(), json={
+        "username": "testkeeper", "name": "测试管理员", "role": "keeper",
+        "org": "公安县供电公司", "password": "abc12345"})
+    assert r.status_code == 200
+    # 新账号登录：keeper 只能看本单位阵地
+    r = client.post("/api/login", json={"username": "testkeeper", "password": "abc12345"})
+    tk = r.json()["token"]
+    vs = client.get("/api/venues", headers={"Authorization": f"Bearer {tk}"}).json()
+    assert len(vs) == 7 and all(v["org"] == "公安县供电公司" for v in vs)
+    # 重置密码后用新密码登录
+    uid = client.get("/api/users", headers=auth()).json()
+    uid = next(u for u in uid if u["username"] == "testkeeper")["id"]
+    import copy
+    row = {"username": "testkeeper", "name": "测试管理员", "role": "keeper",
+           "org": "公安县供电公司", "password": "newpwd66", "active": True}
+    assert client.put(f"/api/users/{uid}", headers=auth(), json=row).status_code == 200
+    assert client.post("/api/login", json={"username": "testkeeper", "password": "newpwd66"}).status_code == 200
+    # 停用后登录被拒
+    row["active"] = False
+    client.put(f"/api/users/{uid}", headers=auth(), json=row)
+    assert client.post("/api/login", json={"username": "testkeeper", "password": "newpwd66"}).status_code == 401
+    # 内置管理员不可停用/降级
+    admin_row = next(u for u in client.get("/api/users", headers=auth()).json() if u["username"] == "admin")
+    r = client.put(f"/api/users/{admin_row['id']}", headers=auth(),
+                   json={**admin_row, "active": False})
+    assert r.status_code == 400
+    # 修改自己密码：错原密码被拒，正确后新密码可登录
+    r = client.post("/api/change-password", headers=auth(),
+                    json={"old_password": "wrong", "new_password": "x1y2z3"})
+    assert r.status_code == 400
+    r = client.post("/api/change-password", headers=auth(),
+                    json={"old_password": "admin123", "new_password": "x1y2z3"})
+    assert r.status_code == 200
+    assert client.post("/api/login", json={"username": "admin", "password": "x1y2z3"}).status_code == 200

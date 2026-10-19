@@ -66,6 +66,8 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.username == body.username))
     if not user or user.password_hash != hash_pwd(body.password):
         raise HTTPException(401, "用户名或密码错误")
+    if not user.active:
+        raise HTTPException(401, "账号已停用，请联系管理员")
     return {"token": create_token(user), "name": user.name, "role": user.role, "org": user.org}
 
 
@@ -436,6 +438,77 @@ def qrcode_png(request: Request):
     from fastapi import Response
     return Response(content=buf.getvalue(), media_type="image/png",
                     headers={"Content-Disposition": "inline; filename=reserve_qr.png"})
+
+
+# ---------------- 系统管理：用户管理 ----------------
+ORG_LIST = ["荆州供电公司工会", "江陵县供电公司", "公安县供电公司", "监利市供电公司",
+            "松滋市供电公司", "石首市供电公司", "洪湖市供电公司"]
+
+
+class UserIn(BaseModel):
+    username: str
+    name: str
+    role: str = "county"          # admin / county / keeper
+    org: str = ""
+    password: str = ""
+    active: bool = True
+
+
+class PwdIn(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@app.get("/api/meta/orgs")
+def meta_orgs(user: User = Depends(current_user)):
+    return ORG_LIST
+
+
+@app.get("/api/users")
+def list_users(db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    return [{"id": u.id, "username": u.username, "name": u.name, "role": u.role,
+             "org": u.org, "active": u.active}
+            for u in db.scalars(select(User).order_by(User.id))]
+
+
+@app.post("/api/users")
+def create_user(body: UserIn, db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    if not body.password:
+        raise HTTPException(400, "新建用户必须设置初始密码")
+    if db.scalar(select(User).where(User.username == body.username)):
+        raise HTTPException(400, "用户名已存在")
+    if body.role != "admin" and body.org not in ORG_LIST:
+        raise HTTPException(400, "所属单位无效")
+    u = User(username=body.username, name=body.name, role=body.role, org=body.org,
+             password_hash=hash_pwd(body.password), active=body.active)
+    db.add(u); db.commit(); db.refresh(u)
+    return {"id": u.id}
+
+
+@app.put("/api/users/{uid}")
+def update_user(uid: int, body: UserIn, db: Session = Depends(get_db),
+                user: User = Depends(require_admin)):
+    u = db.get(User, uid)
+    if not u:
+        raise HTTPException(404, "用户不存在")
+    if u.username == "admin" and (body.role != "admin" or not body.active):
+        raise HTTPException(400, "不能停用或降级内置管理员")
+    u.name, u.role, u.org, u.active = body.name, body.role, body.org, body.active
+    if body.password:
+        u.password_hash = hash_pwd(body.password)
+    db.commit()
+    return {"id": u.id}
+
+
+@app.post("/api/change-password")
+def change_password(body: PwdIn, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    if user.password_hash != hash_pwd(body.old_password):
+        raise HTTPException(400, "原密码错误")
+    if len(body.new_password) < 6:
+        raise HTTPException(400, "新密码至少6位")
+    user.password_hash = hash_pwd(body.new_password)
+    db.commit()
+    return {"ok": True}
 
 
 # ---------------- 前端静态页面 ----------------
