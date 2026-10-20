@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .database import engine, get_db
-from .models import AccessLog, Base, Camera, DoorDevice, Reservation, User, Venue
+from .models import AccessLog, Base, Camera, DoorAuth, DoorDevice, Member, Reservation, User, Venue
 from . import ezviz
 
 SECRET_KEY = os.environ.get("VMS_SECRET", "dev-secret-change-me")
@@ -438,6 +438,131 @@ def qrcode_png(request: Request):
     from fastapi import Response
     return Response(content=buf.getvalue(), media_type="image/png",
                     headers={"Content-Disposition": "inline; filename=reserve_qr.png"})
+
+
+# ---------------- 基础数据：人员名单与门禁授权 ----------------
+@app.get("/api/members")
+def list_members(keyword: str = "", org: str = "", db: Session = Depends(get_db),
+                 user: User = Depends(current_user)):
+    q = select(Member)
+    if keyword:
+        q = q.where(Member.name.contains(keyword) | Member.phone.contains(keyword) | Member.card_no.contains(keyword))
+    if org:
+        q = q.where(Member.org == org)
+    elif user.role != "admin":
+        q = q.where(Member.org == user.org)
+    return [{"id": m.id, "name": m.name, "org": m.org, "dept": m.dept, "phone": m.phone,
+             "card_no": m.card_no, "active": m.active, "remark": m.remark}
+            for m in db.scalars(q.order_by(Member.id).limit(2000))]
+
+
+@app.post("/api/members")
+def create_member(name: str, org: str = "", dept: str = "", phone: str = "",
+                  card_no: str = "", remark: str = "",
+                  db: Session = Depends(get_db), user: User = Depends(current_user)):
+    m = Member(name=name, org=org or user.org, dept=dept, phone=phone,
+               card_no=card_no, remark=remark)
+    db.add(m); db.commit(); db.refresh(m)
+    return {"id": m.id}
+
+
+@app.put("/api/members/{mid}")
+def update_member(mid: int, name: str, org: str = "", dept: str = "", phone: str = "",
+                  card_no: str = "", active: bool = True, remark: str = "",
+                  db: Session = Depends(get_db), user: User = Depends(current_user)):
+    m = db.get(Member, mid)
+    if not m:
+        raise HTTPException(404, "人员不存在")
+    m.name, m.org, m.dept, m.phone = name, org or m.org, dept, phone
+    m.card_no, m.active, m.remark = card_no, active, remark
+    if not active:
+        # 离职/停用自动回收其全部门禁授权
+        for a in db.scalars(select(DoorAuth).where(DoorAuth.member_id == mid,
+                                                   DoorAuth.status == "已授权")):
+            a.status = "已回收"
+    db.commit()
+    return {"id": m.id}
+
+
+@app.post("/api/import-members")
+async def import_members(file: UploadFile, replace: bool = False,
+                         db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    """导入人员名单 Excel（列：姓名、所属单位、部门、手机号、卡号/工号、备注）。
+    replace=true 时先清空后导入（全量更新）；默认追加且按 姓名+手机号 去重。"""
+    from openpyxl import load_workbook
+    wb = load_workbook(BytesIO(file.file.read()), data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    rows = list(ws.iter_rows(values_only=True))
+    # 定位表头行
+    head_idx = next((i for i, r in enumerate(rows)
+                     if r and any(str(c or "").strip() in ("姓名", "人员姓名") for c in r[:2])), None)
+    if head_idx is None:
+        raise HTTPException(400, "未找到表头（需包含“姓名”列）")
+    headers = [str(c or "").strip() for c in rows[head_idx]]
+    col = {k: headers.index(k) for k in ("姓名", "所属单位", "部门", "手机号", "卡号/工号", "备注") if k in headers}
+    if "姓名" not in col:
+        raise HTTPException(400, "缺少“姓名”列")
+    if replace:
+        db.query(DoorAuth).delete(); db.query(Member).delete()
+    report = {"imported": 0, "skipped": 0}
+    for r in rows[head_idx + 1:]:
+        if not r or not r[col["姓名"]] or str(r[col["姓名"]]).strip() in ("姓名", "示例"):
+            continue
+        vals = {k: str(r[i] or "").strip() if i < len(r) else "" for k, i in col.items()}
+        dup = db.scalar(select(Member).where(Member.name == vals["姓名"],
+                                             Member.phone == vals.get("手机号", "")))
+        if dup:
+            report["skipped"] += 1; continue
+        db.add(Member(name=vals["姓名"], org=vals.get("所属单位", ""), dept=vals.get("部门", ""),
+                      phone=vals.get("手机号", ""), card_no=vals.get("卡号/工号", ""),
+                      remark=vals.get("备注", "")))
+        report["imported"] += 1
+    db.commit()
+    return report
+
+
+@app.post("/api/members/{mid}/grant/{door_id}")
+def grant_door(mid: int, door_id: int, db: Session = Depends(get_db),
+               user: User = Depends(current_user)):
+    """授权人员使用某门禁（记录层；SDK 下发在设备适配层预留）"""
+    if not db.get(Member, mid) or not db.get(DoorDevice, door_id):
+        raise HTTPException(404, "人员或门禁不存在")
+    exists = db.scalar(select(DoorAuth).where(DoorAuth.member_id == mid,
+                                              DoorAuth.door_id == door_id,
+                                              DoorAuth.status == "已授权"))
+    if exists:
+        return {"id": exists.id, "status": "已授权"}
+    a = DoorAuth(member_id=mid, door_id=door_id, granted_by=user.name)
+    db.add(a); db.commit(); db.refresh(a)
+    return {"id": a.id, "status": a.status}
+
+
+@app.post("/api/members/{mid}/revoke/{door_id}")
+def revoke_door(mid: int, door_id: int, db: Session = Depends(get_db),
+                user: User = Depends(current_user)):
+    a = db.scalar(select(DoorAuth).where(DoorAuth.member_id == mid,
+                                         DoorAuth.door_id == door_id,
+                                         DoorAuth.status == "已授权"))
+    if a:
+        a.status = "已回收"; db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/door-auths")
+def list_door_auths(door_id: int = 0, member_id: int = 0,
+                    db: Session = Depends(get_db), user: User = Depends(current_user)):
+    q = select(DoorAuth)
+    if door_id:
+        q = q.where(DoorAuth.door_id == door_id)
+    if member_id:
+        q = q.where(DoorAuth.member_id == member_id)
+    out = []
+    for a in db.scalars(q.order_by(DoorAuth.id.desc()).limit(1000)):
+        m = db.get(Member, a.member_id); d = db.get(DoorDevice, a.door_id)
+        out.append({"id": a.id, "member": m.name if m else "", "member_id": a.member_id,
+                    "door": d.location if d else "", "door_id": a.door_id,
+                    "status": a.status, "granted_by": a.granted_by})
+    return out
 
 
 # ---------------- 系统管理：用户管理 ----------------

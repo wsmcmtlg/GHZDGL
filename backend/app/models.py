@@ -82,6 +82,30 @@ class AccessLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
 
 
+class Member(Base):
+    """工会会员/人员名单（门禁授权依据）"""
+    __tablename__ = "members"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), index=True)
+    org: Mapped[str] = mapped_column(String(100), default="")
+    dept: Mapped[str] = mapped_column(String(100), default="")
+    phone: Mapped[str] = mapped_column(String(30), default="", index=True)
+    card_no: Mapped[str] = mapped_column(String(50), default="")  # 门禁卡号/工号
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    remark: Mapped[str] = mapped_column(Text, default="")
+
+
+class DoorAuth(Base):
+    """门禁授权记录：人员 ↔ 门禁设备"""
+    __tablename__ = "door_auths"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    member_id: Mapped[int] = mapped_column(ForeignKey("members.id"), index=True)
+    door_id: Mapped[int] = mapped_column(ForeignKey("door_devices.id"), index=True)
+    granted_by: Mapped[str] = mapped_column(String(50), default="")
+    status: Mapped[str] = mapped_column(String(20), default="已授权")  # 已授权/已回收
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class Reservation(Base):
     """场地预约"""
     __tablename__ = "reservations"

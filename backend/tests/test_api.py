@@ -171,3 +171,36 @@ def test_user_management():
                     json={"old_password": "admin123", "new_password": "x1y2z3"})
     assert r.status_code == 200
     assert client.post("/api/login", json={"username": "admin", "password": "x1y2z3"}).status_code == 200
+
+
+def test_members_and_auth():
+    # 导入人员名单
+    tpl = os.path.join(os.path.dirname(__file__), "..", "..", "人员名单导入模板.xlsx")
+    with open(tpl, "rb") as f:
+        content = f.read()
+    r = client.post("/api/import-members", files={"file": ("m.xlsx", io.BytesIO(content), "application/octet-stream")}, headers=auth())
+    assert r.status_code == 200, r.text
+    assert r.json()["imported"] == 0  # 模板只有示例行
+    # 直接造两条人员再导入同名同号验证去重
+    from app.database import SessionLocal
+    from app.models import Member
+    db = SessionLocal()
+    db.add(Member(name="张测试", org="公安县供电公司", dept="工会办", phone="13600001111", card_no="GD001"))
+    db.add(Member(name="李测试", org="公安县供电公司", dept="办公室", phone="13600002222", card_no="GD002"))
+    db.commit(); db.close()
+    # 列表与搜索
+    ms = client.get("/api/members?keyword=张测试", headers=auth()).json()
+    assert len(ms) == 1 and ms[0]["card_no"] == "GD001"
+    mid = ms[0]["id"]
+    # 授权与回收
+    doors = client.get("/api/doors", headers=auth()).json()
+    did = doors[0]["id"]
+    r = client.post(f"/api/members/{mid}/grant/{did}", headers=auth())
+    assert r.json()["status"] == "已授权"
+    r = client.post(f"/api/members/{mid}/grant/{did}", headers=auth())
+    assert r.json()["status"] == "已授权"  # 重复授权幂等
+    assert len(client.get(f"/api/door-auths?member_id={mid}", headers=auth()).json()) == 1
+    # 停用人员自动回收授权
+    client.put(f"/api/members/{mid}?name=张测试&org=公安县供电公司&phone=13600001111&card_no=GD001&active=false", headers=auth())
+    a = client.get(f"/api/door-auths?member_id={mid}", headers=auth()).json()[0]
+    assert a["status"] == "已回收"
