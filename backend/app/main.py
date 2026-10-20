@@ -639,6 +639,13 @@ def change_password(body: PwdIn, db: Session = Depends(get_db), user: User = Dep
 # ---------------- 前端静态页面 ----------------
 FRONT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
 if os.path.isdir(FRONT_DIR):
+    @app.middleware("http")
+    async def no_cache_html(request, call_next):
+        resp = await call_next(request)
+        if request.url.path in ("/", "/index.html", "/mobile.html", "/config.js"):
+            resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
     app.mount("/", StaticFiles(directory=FRONT_DIR, html=True), name="front")
 
 

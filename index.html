@@ -259,8 +259,8 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
           <el-upload v-if="user.role==='admin'" :show-file-list="false" :auto-upload="false" @change="doImport">
             <el-button type="warning">导入阵地/设备Excel</el-button>
           </el-upload>
-          <a href="tpl-venues.xlsx" download><el-button link type="primary">下阢阵地/设备模板</el-button></a>
-          <a href="tpl-members.xlsx" download><el-button link type="primary">下阢人员名单模板</el-button></a>
+          <a href="tpl-venues.xlsx" download><el-button link type="primary">下载阵地/设备模板</el-button></a>
+          <a href="tpl-members.xlsx" download><el-button link type="primary">下载人员名单模板</el-button></a>
         </div>
         <el-table :data="members" stripe size="small" max-height="360">
           <el-table-column prop="name" label="姓名" width="100"/>
