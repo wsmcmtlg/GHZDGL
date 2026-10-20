@@ -255,7 +255,12 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
             <el-button type="warning">导入人员名单Excel</el-button>
           </el-upload>
           <el-checkbox v-model="mk.replace" style="font-size:13px">全量替换（覆盖已有名单）</el-checkbox>
-          <a href="https://wsmcmtlg.github.io/GHZDGL/qr-mobile.png" style="display:none"></a>
+          <el-divider direction="vertical"/>
+          <el-upload v-if="user.role==='admin'" :show-file-list="false" :auto-upload="false" @change="doImport">
+            <el-button type="warning">导入阵地/设备Excel</el-button>
+          </el-upload>
+          <a href="tpl-venues.xlsx" download><el-button link type="primary">下阢阵地/设备模板</el-button></a>
+          <a href="tpl-members.xlsx" download><el-button link type="primary">下阢人员名单模板</el-button></a>
         </div>
         <el-table :data="members" stripe size="small" max-height="360">
           <el-table-column prop="name" label="姓名" width="100"/>
