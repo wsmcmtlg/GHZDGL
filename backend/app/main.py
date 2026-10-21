@@ -637,7 +637,7 @@ def change_password(body: PwdIn, db: Session = Depends(get_db), user: User = Dep
 
 
 # ---------------- 前端静态页面 ----------------
-FRONT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
+FRONT_DIR = os.environ.get("VMS_FRONT_DIR") or os.path.join(os.path.dirname(__file__), "..", "..")
 if os.path.isdir(FRONT_DIR):
     @app.middleware("http")
     async def no_cache_html(request, call_next):

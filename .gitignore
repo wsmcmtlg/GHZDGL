@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 snapshots/
 .pytest_cache/
+
+# 桌面版打包产物
+desktop/build/
+desktop/dist/
+desktop/*.spec
