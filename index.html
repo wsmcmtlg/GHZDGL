@@ -36,8 +36,8 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
     <div class="login-card">
       <h2>工会活动阵地管理系统</h2>
       <el-form @submit.prevent="doLogin">
-        <el-form-item><el-input v-model="login.username" placeholder="用户名" size="large"/></el-form-item>
-        <el-form-item><el-input v-model="login.password" type="password" placeholder="密码" size="large" show-password/></el-form-item>
+        <el-form-item><el-input v-model="login.username" placeholder="用户名" size="large"></el-input></el-form-item>
+        <el-form-item><el-input v-model="login.password" type="password" placeholder="密码" size="large" show-password></el-input></el-form-item>
         <el-button type="primary" size="large" style="width:100%" @click="doLogin" :loading="loading">登 录</el-button>
       </el-form>
       <p style="color:#999;font-size:12px;margin-top:16px;text-align:center">测试账号：admin / admin123（管理员）<br>公安县 / 123456（县公司）</p>
@@ -74,9 +74,9 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
         <div class="card">
           <h3 style="margin-top:0;color:#2F5597">近30日阵地使用排行 Top10</h3>
           <el-table :data="stats.top_usage||[]" stripe>
-            <el-table-column type="index" label="#" width="50"/>
-            <el-table-column prop="venue" label="阵地名称"/>
-            <el-table-column prop="count" label="使用次数" width="120"/>
+            <el-table-column type="index" label="#" width="50"></el-table-column>
+            <el-table-column prop="venue" label="阵地名称"></el-table-column>
+            <el-table-column prop="count" label="使用次数" width="120"></el-table-column>
           </el-table>
         </div>
       </div>
@@ -85,9 +85,9 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
       <div v-if="tab==='venues'">
         <div class="card">
           <div class="toolbar">
-            <el-input v-model="q.keyword" placeholder="阵地名称/单位" style="width:220px" clearable @change="loadVenues"/>
+            <el-input v-model="q.keyword" placeholder="阵地名称/单位" style="width:220px" clearable @change="loadVenues"></el-input>
             <el-select v-model="q.level" placeholder="层级" style="width:120px" clearable @change="loadVenues">
-              <el-option label="本部" value="本部"/><el-option label="县级公司" value="县级公司"/>
+              <el-option label="本部" value="本部"></el-option><el-option label="县级公司" value="县级公司"></el-option>
             </el-select>
             <el-button type="primary" @click="loadVenues">查询</el-button>
             <el-button v-if="user.role==='admin'" type="success" @click="openVenue()">新增阵地</el-button>
@@ -95,15 +95,15 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
               @change="doImport"><el-button type="warning">导入Excel填报数据</el-button></el-upload>
           </div>
           <el-table :data="venues" stripe size="small" height="calc(100vh - 220px)">
-            <el-table-column prop="name" label="阵地名称" min-width="150" fixed/>
-            <el-table-column prop="level" label="层级" width="90"/>
-            <el-table-column prop="org" label="所属单位" width="140"/>
-            <el-table-column prop="category" label="类型" width="90"/>
-            <el-table-column prop="area" label="面积㎡" width="80"/>
-            <el-table-column prop="capacity" label="容纳" width="70"/>
-            <el-table-column prop="open_hours" label="开放时间" width="150" show-overflow-tooltip/>
-            <el-table-column prop="manager" label="管理员" width="90"/>
-            <el-table-column prop="phone" label="电话" width="120"/>
+            <el-table-column prop="name" label="阵地名称" min-width="150" fixed></el-table-column>
+            <el-table-column prop="level" label="层级" width="90"></el-table-column>
+            <el-table-column prop="org" label="所属单位" width="140"></el-table-column>
+            <el-table-column prop="category" label="类型" width="90"></el-table-column>
+            <el-table-column prop="area" label="面积㎡" width="80"></el-table-column>
+            <el-table-column prop="capacity" label="容纳" width="70"></el-table-column>
+            <el-table-column prop="open_hours" label="开放时间" width="150" show-overflow-tooltip></el-table-column>
+            <el-table-column prop="manager" label="管理员" width="90"></el-table-column>
+            <el-table-column prop="phone" label="电话" width="120"></el-table-column>
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="s">
                 <el-button v-if="user.role==='admin'" size="small" @click="openVenue(s.row)">编辑</el-button>
@@ -119,15 +119,15 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
         <div class="card">
           <h3 style="margin-top:0;color:#2F5597">门禁设备</h3>
           <el-table :data="doors" stripe size="small" max-height="340">
-            <el-table-column prop="venue" label="所属阵地" min-width="150"/>
-            <el-table-column prop="brand" label="品牌" width="90"/>
-            <el-table-column prop="model" label="型号" width="110"/>
+            <el-table-column prop="venue" label="所属阵地" min-width="150"></el-table-column>
+            <el-table-column prop="brand" label="品牌" width="90"></el-table-column>
+            <el-table-column prop="model" label="型号" width="110"></el-table-column>
             <el-table-column label="联网类型" width="110">
               <template #default="s"><el-tag :type="s.row.net_type==='联网型'?'success':'info'">{{s.row.net_type}}</el-tag></template>
             </el-table-column>
-            <el-table-column prop="access_mode" label="接入方式" width="110"/>
-            <el-table-column prop="serial" label="序列号/IP" width="120"/>
-            <el-table-column prop="location" label="安装位置" width="90"/>
+            <el-table-column prop="access_mode" label="接入方式" width="110"></el-table-column>
+            <el-table-column prop="serial" label="序列号/IP" width="120"></el-table-column>
+            <el-table-column prop="location" label="安装位置" width="90"></el-table-column>
             <el-table-column label="操作" width="110">
               <template #default="s">
                 <el-button v-if="s.row.net_type==='联网型'" size="small" type="primary"
@@ -139,13 +139,13 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
         <div class="card">
           <h3 style="margin-top:0;color:#2F5597">摄像头设备</h3>
           <el-table :data="cameras" stripe size="small" max-height="340">
-            <el-table-column prop="venue" label="所属阵地" min-width="150"/>
-            <el-table-column prop="brand" label="品牌" width="90"/>
-            <el-table-column prop="model" label="型号" width="100"/>
-            <el-table-column prop="platform" label="接入平台" width="100"/>
-            <el-table-column prop="serial" label="序列号" width="110"/>
-            <el-table-column prop="location" label="安装位置" width="100"/>
-            <el-table-column prop="coverage" label="覆盖区域" min-width="120"/>
+            <el-table-column prop="venue" label="所属阵地" min-width="150"></el-table-column>
+            <el-table-column prop="brand" label="品牌" width="90"></el-table-column>
+            <el-table-column prop="model" label="型号" width="100"></el-table-column>
+            <el-table-column prop="platform" label="接入平台" width="100"></el-table-column>
+            <el-table-column prop="serial" label="序列号" width="110"></el-table-column>
+            <el-table-column prop="location" label="安装位置" width="100"></el-table-column>
+            <el-table-column prop="coverage" label="覆盖区域" min-width="120"></el-table-column>
           </el-table>
         </div>
       </div>
@@ -172,20 +172,20 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
       <div v-if="tab==='logs'" class="card">
         <div class="toolbar">
           <el-select v-model="logVenue" placeholder="按阵地筛选" style="width:220px" clearable @change="loadLogs">
-            <el-option v-for="v in venues" :key="v.id" :label="v.name" :value="v.id"/>
+            <el-option v-for="v in venues" :key="v.id" :label="v.name" :value="v.id"></el-option>
           </el-select>
         </div>
         <el-table :data="logs" stripe size="small" height="calc(100vh - 200px)">
-          <el-table-column prop="created_at" label="时间" width="170"/>
-          <el-table-column prop="person" label="人员" width="120"/>
+          <el-table-column prop="created_at" label="时间" width="170"></el-table-column>
+          <el-table-column prop="person" label="人员" width="120"></el-table-column>
           <el-table-column label="行为" width="120">
             <template #default="s">
               <el-tag :type="s.row.action==='remote_open'?'warning':'primary'" size="small">
                 {{({remote_open:'远程开门',card_open:'刷卡',scheduled_open:'定时开放'})[s.row.action]}}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="source" label="来源" width="100"/>
-          <el-table-column prop="snapshot" label="关联快照"/>
+          <el-table-column prop="source" label="来源" width="100"></el-table-column>
+          <el-table-column prop="snapshot" label="关联快照"></el-table-column>
         </el-table>
       </div>
 
@@ -193,17 +193,17 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
       <div v-if="tab==='resv'" class="card">
         <div class="toolbar">
           <el-select v-model="resvFilter" placeholder="状态" style="width:130px" clearable @change="loadResv">
-            <el-option label="待审批" value="待审批"/><el-option label="已通过" value="已通过"/><el-option label="已拒绝" value="已拒绝"/>
+            <el-option label="待审批" value="待审批"></el-option><el-option label="已通过" value="已通过"></el-option><el-option label="已拒绝" value="已拒绝"></el-option>
           </el-select>
           <el-button type="success" @click="resvDlg=true">新建预约</el-button>
         </div>
         <el-table :data="resvs" stripe size="small" height="calc(100vh - 200px)">
-          <el-table-column prop="venue" label="阵地" min-width="140"/>
-          <el-table-column prop="applicant" label="申请人" width="100"/>
-          <el-table-column prop="phone" label="电话" width="120"/>
-          <el-table-column prop="start_time" label="开始" width="150"/>
-          <el-table-column prop="end_time" label="结束" width="150"/>
-          <el-table-column prop="reason" label="事由" min-width="120"/>
+          <el-table-column prop="venue" label="阵地" min-width="140"></el-table-column>
+          <el-table-column prop="applicant" label="申请人" width="100"></el-table-column>
+          <el-table-column prop="phone" label="电话" width="120"></el-table-column>
+          <el-table-column prop="start_time" label="开始" width="150"></el-table-column>
+          <el-table-column prop="end_time" label="结束" width="150"></el-table-column>
+          <el-table-column prop="reason" label="事由" min-width="120"></el-table-column>
           <el-table-column label="状态" width="90">
             <template #default="s"><el-tag :type="s.row.status==='已通过'?'success':(s.row.status==='已拒绝'?'danger':'warning')" size="small">{{s.row.status}}</el-tag></template>
           </el-table-column>
@@ -226,12 +226,12 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
         <span style="color:#888;font-size:13px">角色：admin=荆州工会（全局）· county=县公司工会（仅本单位）· keeper=阵地管理员</span>
       </div>
       <el-table :data="users" stripe size="small" max-height="calc(100vh - 200px)">
-        <el-table-column prop="username" label="账号" width="120"/>
-        <el-table-column prop="name" label="姓名" width="140"/>
+        <el-table-column prop="username" label="账号" width="120"></el-table-column>
+        <el-table-column prop="name" label="姓名" width="140"></el-table-column>
         <el-table-column label="角色" width="120">
           <template #default="s"><el-tag :type="s.row.role==='admin'?'danger':(s.row.role==='county'?'primary':'info')" size="small">{{s.row.role}}</el-tag></template>
         </el-table-column>
-        <el-table-column prop="org" label="所属单位" min-width="150"/>
+        <el-table-column prop="org" label="所属单位" min-width="150"></el-table-column>
         <el-table-column label="状态" width="80">
           <template #default="s"><el-tag :type="s.row.active?'success':'info'" size="small">{{s.row.active?'启用':'停用'}}</el-tag></template>
         </el-table-column>
@@ -248,14 +248,14 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
     <div v-if="tab==='data'">
       <div class="card">
         <div class="toolbar">
-          <el-input v-model="mk.keyword" placeholder="姓名/手机号/卡号" style="width:200px" clearable @change="loadMembers"/>
+          <el-input v-model="mk.keyword" placeholder="姓名/手机号/卡号" style="width:200px" clearable @change="loadMembers"></el-input>
           <el-button type="primary" @click="loadMembers">查询</el-button>
           <el-button type="success" @click="memberDlg=true">新增人员</el-button>
           <el-upload :show-file-list="false" :auto-upload="false" @change="doImportMembers">
             <el-button type="warning">导入人员名单Excel</el-button>
           </el-upload>
           <el-checkbox v-model="mk.replace" style="font-size:13px">全量替换（覆盖已有名单）</el-checkbox>
-          <el-divider direction="vertical"/>
+          <el-divider direction="vertical"></el-divider>
           <el-upload v-if="user.role==='admin'" :show-file-list="false" :auto-upload="false" @change="doImport">
             <el-button type="warning">导入阵地/设备Excel</el-button>
           </el-upload>
@@ -263,11 +263,11 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
           <a href="tpl-members.xlsx" download><el-button link type="primary">下载人员名单模板</el-button></a>
         </div>
         <el-table :data="members" stripe size="small" max-height="360">
-          <el-table-column prop="name" label="姓名" width="100"/>
-          <el-table-column prop="org" label="所属单位" width="150"/>
-          <el-table-column prop="dept" label="部门" width="130"/>
-          <el-table-column prop="phone" label="手机号" width="130"/>
-          <el-table-column prop="card_no" label="卡号/工号" width="120"/>
+          <el-table-column prop="name" label="姓名" width="100"></el-table-column>
+          <el-table-column prop="org" label="所属单位" width="150"></el-table-column>
+          <el-table-column prop="dept" label="部门" width="130"></el-table-column>
+          <el-table-column prop="phone" label="手机号" width="130"></el-table-column>
+          <el-table-column prop="card_no" label="卡号/工号" width="120"></el-table-column>
           <el-table-column label="状态" width="80">
             <template #default="s"><el-tag :type="s.row.active?'success':'info'" size="small">{{s.row.active?'在册':'停用'}}</el-tag></template>
           </el-table-column>
@@ -282,12 +282,12 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
       <div class="card">
         <h3 style="margin-top:0;color:#2F5597">门禁授权记录</h3>
         <el-table :data="auths" stripe size="small" max-height="300">
-          <el-table-column prop="member" label="人员" width="100"/>
-          <el-table-column prop="door" label="门禁位置" min-width="130"/>
+          <el-table-column prop="member" label="人员" width="100"></el-table-column>
+          <el-table-column prop="door" label="门禁位置" min-width="130"></el-table-column>
           <el-table-column label="状态" width="100">
             <template #default="s"><el-tag :type="s.row.status==='已授权'?'success':'info'" size="small">{{s.row.status}}</el-tag></template>
           </el-table-column>
-          <el-table-column prop="granted_by" label="授权人" width="100"/>
+          <el-table-column prop="granted_by" label="授权人" width="100"></el-table-column>
           <el-table-column label="操作" width="100">
             <template #default="s">
               <el-button v-if="s.row.status==='已授权'" size="small" type="danger" @click="revoke(s.row)">回收</el-button>
@@ -301,11 +301,11 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
   <!-- 新增人员弹窗 -->
   <el-dialog v-model="memberDlg" title="新增人员" width="420px">
     <el-form label-width="90px">
-      <el-form-item label="姓名"><el-input v-model="memberForm.name"/></el-form-item>
-      <el-form-item label="所属单位"><el-input v-model="memberForm.org"/></el-form-item>
-      <el-form-item label="部门"><el-input v-model="memberForm.dept"/></el-form-item>
-      <el-form-item label="手机号"><el-input v-model="memberForm.phone"/></el-form-item>
-      <el-form-item label="卡号/工号"><el-input v-model="memberForm.card_no"/></el-form-item>
+      <el-form-item label="姓名"><el-input v-model="memberForm.name"></el-input></el-form-item>
+      <el-form-item label="所属单位"><el-input v-model="memberForm.org"></el-input></el-form-item>
+      <el-form-item label="部门"><el-input v-model="memberForm.dept"></el-input></el-form-item>
+      <el-form-item label="手机号"><el-input v-model="memberForm.phone"></el-input></el-form-item>
+      <el-form-item label="卡号/工号"><el-input v-model="memberForm.card_no"></el-input></el-form-item>
     </el-form>
     <template #footer><el-button @click="memberDlg=false">取消</el-button>
       <el-button type="primary" @click="saveMember">保存</el-button></template>
@@ -314,7 +314,7 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
   <!-- 门禁授权弹窗 -->
   <el-dialog v-model="grantDlg" :title="`门禁授权 · ${grantMember?grantMember.name:''}`" width="420px">
     <el-select v-model="grantDoor" filterable placeholder="选择门禁设备" style="width:100%">
-      <el-option v-for="d in doors" :key="d.id" :label="`${d.venue} - ${d.location}（${d.net_type}）`" :value="d.id"/>
+      <el-option v-for="d in doors" :key="d.id" :label="`${d.venue} - ${d.location}（${d.net_type}）`" :value="d.id"></el-option>
     </el-select>
     <template #footer><el-button @click="grantDlg=false">取消</el-button>
       <el-button type="primary" @click="doGrant">授权</el-button></template>
@@ -323,22 +323,22 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
   <!-- 用户编辑弹窗 -->
   <el-dialog v-model="userDlg" :title="userForm.id?'编辑账号':'新增账号'" width="440px">
     <el-form label-width="90px">
-      <el-form-item label="账号"><el-input v-model="userForm.username" :disabled="!!userForm.id"/></el-form-item>
-      <el-form-item label="姓名"><el-input v-model="userForm.name"/></el-form-item>
+      <el-form-item label="账号"><el-input v-model="userForm.username" :disabled="!!userForm.id"></el-input></el-form-item>
+      <el-form-item label="姓名"><el-input v-model="userForm.name"></el-input></el-form-item>
       <el-form-item label="角色">
         <el-select v-model="userForm.role">
-          <el-option label="荆州工会（全局）" value="admin"/>
-          <el-option label="县公司工会" value="county"/>
-          <el-option label="阵地管理员" value="keeper"/>
+          <el-option label="荆州工会（全局）" value="admin"></el-option>
+          <el-option label="县公司工会" value="county"></el-option>
+          <el-option label="阵地管理员" value="keeper"></el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="所属单位">
         <el-select v-model="userForm.org" :disabled="userForm.role==='admin'" filterable>
-          <el-option v-for="o in orgs" :key="o" :label="o" :value="o"/>
+          <el-option v-for="o in orgs" :key="o" :label="o" :value="o"></el-option>
         </el-select>
       </el-form-item>
       <el-form-item :label="userForm.id?'重置密码':'初始密码'">
-        <el-input v-model="userForm.password" type="password" show-password :placeholder="userForm.id?'留空则不修改密码':''"/>
+        <el-input v-model="userForm.password" type="password" show-password :placeholder="userForm.id?'留空则不修改密码':''"></el-input>
       </el-form-item>
     </el-form>
     <template #footer><el-button @click="userDlg=false">取消</el-button>
@@ -348,9 +348,9 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
   <!-- 修改密码弹窗 -->
   <el-dialog v-model="pwdDlg" title="修改密码" width="400px">
     <el-form label-width="90px">
-      <el-form-item label="原密码"><el-input v-model="pwdForm.old" type="password" show-password/></el-form-item>
-      <el-form-item label="新密码"><el-input v-model="pwdForm.new1" type="password" show-password placeholder="至少6位"/></el-form-item>
-      <el-form-item label="确认新密码"><el-input v-model="pwdForm.new2" type="password" show-password/></el-form-item>
+      <el-form-item label="原密码"><el-input v-model="pwdForm.old" type="password" show-password></el-input></el-form-item>
+      <el-form-item label="新密码"><el-input v-model="pwdForm.new1" type="password" show-password placeholder="至少6位"></el-input></el-form-item>
+      <el-form-item label="确认新密码"><el-input v-model="pwdForm.new2" type="password" show-password></el-input></el-form-item>
     </el-form>
     <template #footer><el-button @click="pwdDlg=false">取消</el-button>
       <el-button type="primary" @click="doChangePwd">确定</el-button></template>
@@ -359,17 +359,17 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
   <!-- 阵地编辑弹窗 -->
   <el-dialog v-model="venueDlg" :title="venueForm.id?'编辑阵地':'新增阵地'" width="560px">
     <el-form label-width="90px">
-      <el-form-item label="阵地名称"><el-input v-model="venueForm.name"/></el-form-item>
+      <el-form-item label="阵地名称"><el-input v-model="venueForm.name"></el-input></el-form-item>
       <el-form-item label="层级">
-        <el-select v-model="venueForm.level"><el-option label="本部" value="本部"/><el-option label="县级公司" value="县级公司"/></el-select>
+        <el-select v-model="venueForm.level"><el-option label="本部" value="本部"></el-option><el-option label="县级公司" value="县级公司"></el-option></el-select>
       </el-form-item>
-      <el-form-item label="所属单位"><el-input v-model="venueForm.org"/></el-form-item>
-      <el-form-item label="详细地址"><el-input v-model="venueForm.address"/></el-form-item>
-      <el-form-item label="场所类型"><el-input v-model="venueForm.category"/></el-form-item>
-      <el-form-item label="面积(㎡)"><el-input-number v-model="venueForm.area"/></el-form-item>
-      <el-form-item label="开放时间"><el-input v-model="venueForm.open_hours"/></el-form-item>
-      <el-form-item label="管理员"><el-input v-model="venueForm.manager"/></el-form-item>
-      <el-form-item label="电话"><el-input v-model="venueForm.phone"/></el-form-item>
+      <el-form-item label="所属单位"><el-input v-model="venueForm.org"></el-input></el-form-item>
+      <el-form-item label="详细地址"><el-input v-model="venueForm.address"></el-input></el-form-item>
+      <el-form-item label="场所类型"><el-input v-model="venueForm.category"></el-input></el-form-item>
+      <el-form-item label="面积(㎡)"><el-input-number v-model="venueForm.area"></el-input-number></el-form-item>
+      <el-form-item label="开放时间"><el-input v-model="venueForm.open_hours"></el-input></el-form-item>
+      <el-form-item label="管理员"><el-input v-model="venueForm.manager"></el-input></el-form-item>
+      <el-form-item label="电话"><el-input v-model="venueForm.phone"></el-input></el-form-item>
     </el-form>
     <template #footer><el-button @click="venueDlg=false">取消</el-button>
       <el-button type="primary" @click="saveVenue">保存</el-button></template>
@@ -380,14 +380,14 @@ body{margin:0;font-family:'微软雅黑',sans-serif;background:#f5f7fa}
     <el-form label-width="80px">
       <el-form-item label="阵地">
         <el-select v-model="resvForm.venue_id" filterable>
-          <el-option v-for="v in venues" :key="v.id" :label="v.name" :value="v.id"/>
+          <el-option v-for="v in venues" :key="v.id" :label="v.name" :value="v.id"></el-option>
         </el-select>
       </el-form-item>
-      <el-form-item label="申请人"><el-input v-model="resvForm.applicant"/></el-form-item>
+      <el-form-item label="申请人"><el-input v-model="resvForm.applicant"></el-input></el-form-item>
       <el-form-item label="时间段">
-        <el-date-picker v-model="resvRange" type="datetimerange" start-placeholder="开始" end-placeholder="结束"/>
+        <el-date-picker v-model="resvRange" type="datetimerange" start-placeholder="开始" end-placeholder="结束"></el-date-picker>
       </el-form-item>
-      <el-form-item label="事由"><el-input v-model="resvForm.reason" type="textarea"/></el-form-item>
+      <el-form-item label="事由"><el-input v-model="resvForm.reason" type="textarea"></el-input></el-form-item>
     </el-form>
     <template #footer><el-button @click="resvDlg=false">取消</el-button>
       <el-button type="primary" @click="submitResv">提交</el-button></template>
